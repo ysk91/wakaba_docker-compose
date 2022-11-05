@@ -1,0 +1,32 @@
+version: "3.8"    # この docker-compose.yml ファイルの書式バージョンを指定している
+services:         # この下から、起動するコンテナ設定を定義しますよ（サービスを定義しますよ）という意味
+
+  db:             # db という名前でサービスを定義
+    image: postgres:11-alpine      # postgresというイメージを使用。11-alpine の部分はバージョンを指定している
+    environment:  # コンテナに「環境変数」を設定
+      POSTGRES_DB: wiki   # POSTGRES_DB という環境変数に、"wiki"という値を渡す
+      POSTGRES_PASSWORD: wikijsrocks # POSTGRES_PASSWORD という環境変数に、"wikijsrocks"という値を渡す
+      POSTGRES_USER: wikijs # POSTGRES_USER という環境変数に、"wikijs"という値を渡す
+    logging:
+      driver: "none"
+    restart: unless-stopped  # コンテナ停止時に、常に再起動させる。ただしコンテナが手動などで停止された場合は除く。（Dockerデーモンが再起動した場合には再起動しない）
+    volumes:
+      - db-data:/var/lib/postgresql/data   # コンテナが停止されてもデータを永続化させたいため、マウントを指定する
+
+  wiki:             # wiki という名前で別のサービスを定義
+    image: requarks/wiki:2     # requarks/wiki というイメージを使用。バージョンは 2 を指定している
+    depends_on:     # サービス間の依存関係を指定できる
+      - db   # "wiki" を "db" に依存させる
+    environment:  # コンテナに「環境変数」を設定
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432    # なぜ 5432 かというと、postgresのデフォルトのポート番号が 5432 だから
+      DB_USER: wikijs
+      DB_PASS: wikijsrocks
+      DB_NAME: wiki
+    restart: unless-stopped  # コンテナ停止時に、常に再起動させる。ただしコンテナが手動などで停止された場合は除く。（Dockerデーモンが再起動した場合には再起動しない）
+    ports: #ホストのポート番号とコンテナのポート番号を対応付ける
+      - "80:3000"  # ポート番号を指定。これで、localhost:80にアクセスしたら3000につながる
+
+volumes:  #マウントする設定ファイルのパスを指定
+  db-data:  
